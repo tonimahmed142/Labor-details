@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>লেবার কাজ ব্যবস্থাপনা</title>
+<style>
+    body { font-family: "Noto Sans Bengali", sans-serif; background: #f4f4f4; margin:0; padding:0; }
+    header { background:#0077cc; color:white; padding:10px; text-align:center; font-size:22px; font-weight:bold; }
+    .container { width:90%; max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2);}
+    button { background:#0077cc; color:white; border:none; padding:8px 14px; margin:5px; border-radius:6px; cursor:pointer; font-size:15px;}
+    button:hover { background:#005fa3; }
+    table { width:100%; border-collapse:collapse; margin-top:10px;}
+    th, td { border:1px solid #ccc; padding:6px; text-align:center;}
+    th { background:#0077cc; color:white;}
+    .hidden{display:none;}
+    .tab-btn { background:#e0e0e0; color:black;}
+    .tab-btn.active{background:#0077cc;color:white;}
+    .red { background:#ffcccc !important;}
+</style>
+</head>
+<body>
+<header>লেবার কাজ এবং বিল ব্যবস্থাপনা</header>
+
+<div class="container" id="loginPage">
+  <h3>লগইন করুন</h3>
+  <button onclick="adminLogin()">Admin Login</button>
+  <button onclick="openDashboard('viewer')">View Details</button>
+</div>
+
+<div class="container hidden" id="passwordBox">
+  <h3>অ্যাডমিন পাসওয়ার্ড দিন</h3>
+  <input type="password" id="adminPass" placeholder="Enter Password">
+  <button onclick="checkPassword()">Submit</button>
+</div>
+
+<div class="container hidden" id="dashboard">
+  <div>
+    <button class="tab-btn active" id="dailyTab" onclick="showTab('daily')">Daily Work</button>
+    <button class="tab-btn" id="permTab" onclick="showTab('perm')">Permanent Workers</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Daily Section -->
+  <div id="dailySection">
+    <h3>দৈনিক কাজের তালিকা</h3>
+    <div id="adminControls" class="hidden">
+      <input type="text" id="name" placeholder="নাম">
+      <input type="date" id="date">
+      <input type="text" id="details" placeholder="বিবরণ">
+      <input type="number" id="baki" placeholder="বাকী">
+      <input type="number" id="jama" placeholder="জমা">
+      <input type="number" id="total" placeholder="মোট">
+      <button onclick="addRecord()">Add</button>
+    </div>
+    <table id="dailyTable">
+      <thead>
+        <tr>
+          <th>নাম</th><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th class="admin-only hidden">অ্যাকশন</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Permanent Section -->
+  <div id="permSection" class="hidden">
+    <h3>স্থায়ী শ্রমিক তালিকা</h3>
+    <table id="workerTable">
+      <thead>
+        <tr><th>নাম</th><th>মোট বাকী</th><th>মোট জমা</th><th>মোট কাজ</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Worker Details -->
+<div class="container hidden" id="workerDetails">
+  <h3 id="workerTitle"></h3>
+  <table>
+    <thead>
+      <tr><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th></tr>
+    </thead>
+    <tbody id="workerDetailBody"></tbody>
+  </table>
+  <button onclick="closeWorkerDetails()">Back</button>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  // Import Firebase modules
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } 
+  from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+  // TODO: ADD YOUR FIREBASE CONFIG HERE
+  const firebaseConfig = {
+  apiKey: "AIzaSyDd4hJ1iDQWFDooMdkqs1r9k7RfgEytH90",
+  authDomain: "labor-project-7089b.firebaseapp.com",
+  projectId: "labor-project-7089b",
+  storageBucket: "labor-project-7089b.firebasestorage.app",
+  messagingSenderId: "862029220833",
+  appId: "1:862029220833:web:8e8f5170b105c0fe4660a0",
+  measurementId: "G-2Z8QPVLPRM"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const dailyCol = collection(db, "dailyRecords");
+
+  let mode = "";
+
+  // ---------- LOGIN ----------
+  window.adminLogin = () => {
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("passwordBox").classList.remove("hidden");
+  };
+
+  window.checkPassword = () => {
+    const pass = document.getElementById("adminPass").value;
+    if (pass === "2005") openDashboard("admin");
+    else alert("Wrong password!");
+  };
+
+  window.openDashboard = async (type) => {
+    mode = type;
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("passwordBox").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+    if (mode === "admin") {
+      document.getElementById("adminControls").classList.remove("hidden");
+      document.querySelectorAll(".admin-only").forEach(e=>e.classList.remove("hidden"));
+    }
+    await loadDailyTable();
+    loadWorkerTable();
+  };
+
+  window.logout = () => location.reload();
+
+  window.showTab = (tab) => {
+    if (tab === "daily") {
+      document.getElementById("dailySection").classList.remove("hidden");
+      document.getElementById("permSection").classList.add("hidden");
+      document.getElementById("dailyTab").classList.add("active");
+      document.getElementById("permTab").classList.remove("active");
+    } else {
+      document.getElementById("dailySection").classList.add("hidden");
+      document.getElementById("permSection").classList.remove("hidden");
+      document.getElementById("dailyTab").classList.remove("active");
+      document.getElementById("permTab").classList.add("active");
+    }
+  };
+
+  // ---------- DATA FUNCTIONS ----------
+  async function loadDailyTable() {
+    const tbody = document.querySelector("#dailyTable tbody");
+    tbody.innerHTML = "";
+    const snap = await getDocs(dailyCol);
+    let data = [];
+    snap.forEach(docu => {
+      data.push({ id: docu.id, ...docu.data() });
+    });
+    data.sort((a,b)=> new Date(a.date) - new Date(b.date));
+    data.forEach(rec => {
+      const tr = document.createElement("tr");
+      if (rec.details.toLowerCase().includes("payment") || rec.jama > 0) tr.classList.add("red");
+      tr.innerHTML = `
+        <td>${rec.name}</td><td>${rec.date}</td><td>${rec.details}</td>
+        <td>${rec.baki}</td><td>${rec.jama}</td><td>${rec.total}</td>
+        ${mode==="admin"?`<td class="admin-only"><button onclick="editRecord('${rec.id}')">Edit</button><button onclick="deleteRecord('${rec.id}')">Delete</button></td>`:""}
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  window.addRecord = async () => {
+    const name = document.getElementById("name").value.trim();
+    const date = document.getElementById("date").value;
+    const details = document.getElementById("details").value.trim();
+    const baki = parseFloat(document.getElementById("baki").value)||0;
+    const jama = parseFloat(document.getElementById("jama").value)||0;
+    const total = parseFloat(document.getElementById("total").value)||0;
+    if(!name || !date) return alert("নাম এবং তারিখ দিন");
+    await addDoc(dailyCol, {name, date, details, baki, jama, total});
+    await loadDailyTable();
+    loadWorkerTable();
+    document.querySelectorAll('#adminControls input').forEach(i=>i.value="");
+  };
+
+  window.deleteRecord = async (id) => {
+    if(confirm("আপনি কি মুছে ফেলতে চান?")){
+      await deleteDoc(doc(db, "dailyRecords", id));
+      await loadDailyTable();
+      loadWorkerTable();
+    }
+  };
+
+  window.editRecord = async (id) => {
+    const recDoc = doc(db, "dailyRecords", id);
+    const name = prompt("নাম:");
+    const date = prompt("তারিখ:");
+    const details = prompt("বিবরণ:");
+    const baki = prompt("বাকী:");
+    const jama = prompt("জমা:");
+    const total = prompt("মোট:");
+    await updateDoc(recDoc, {name, date, details, baki:parseFloat(baki)||0, jama:parseFloat(jama)||0, total:parseFloat(total)||0});
+    await loadDailyTable();
+    loadWorkerTable();
+  };
+
+  async function loadWorkerTable() {
+    const tbody = document.querySelector("#workerTable tbody");
+    tbody.innerHTML = "";
+    const snap = await getDocs(dailyCol);
+    const data = [];
+    snap.forEach(docu => data.push(docu.data()));
+    const workers = {};
+    data.forEach(r=>{
+      if(!workers[r.name]) workers[r.name]={baki:0,jama:0,count:0};
+      workers[r.name].baki+=r.baki;
+      workers[r.name].jama+=r.jama;
+      workers[r.name].count++;
+    });
+    for(let name in workers){
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td><a href="#" onclick="showWorkerDetails('${name}')">${name}</a></td>
+                    <td>${workers[name].baki}</td><td>${workers[name].jama}</td><td>${workers[name].count}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  window.showWorkerDetails = async (name) => {
+    document.getElementById("dashboard").classList.add("hidden");
+    document.getElementById("workerDetails").classList.remove("hidden");
+    document.getElementById("workerTitle").innerText = name + " - বিস্তারিত তথ্য";
+    const tbody = document.getElementById("workerDetailBody");
+    tbody.innerHTML = "";
+    const snap = await getDocs(dailyCol);
+    const data = [];
+    snap.forEach(docu => data.push(docu.data()));
+    const workerData = data.filter(r=>r.name===name).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    workerData.forEach(r=>{
+      const tr=document.createElement("tr");
+      if(r.details.toLowerCase().includes("payment") || r.jama>0) tr.classList.add("red");
+      tr.innerHTML=`<td>${r.date}</td><td>${r.details}</td><td>${r.baki}</td><td>${r.jama}</td><td>${r.total}</td>`;
+      tbody.appendChild(tr);
+    });
+  };
+
+  window.closeWorkerDetails = ()=>{
+    document.getElementById("workerDetails").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+  };
+</script>
+</body>
+</html>
