@@ -1,74 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="bn">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>লেবার কাজ ব্যবস্থাপনা</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>লেবার কাজ এবং বিল ব্যবস্থাপনা</title>
 <style>
-    body { font-family: "Noto Sans Bengali", sans-serif; background: #f4f4f4; margin:0; padding:0; }
-    header { background:#0077cc; color:white; padding:10px; text-align:center; font-size:22px; font-weight:bold; }
-    .container { width:90%; max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2);}
-    button { background:#0077cc; color:white; border:none; padding:8px 14px; margin:5px; border-radius:6px; cursor:pointer; font-size:15px;}
-    button:hover { background:#005fa3; }
-    table { width:100%; border-collapse:collapse; margin-top:10px;}
-    th, td { border:1px solid #ccc; padding:6px; text-align:center;}
-    th { background:#0077cc; color:white;}
-    .hidden{display:none;}
-    .tab-btn { background:#e0e0e0; color:black;}
-    .tab-btn.active{background:#0077cc;color:white;}
-    .red { background:#ffcccc !important;}
+  body { font-family: "Noto Sans Bengali", Arial, sans-serif; background:#f4f4f4; margin:0; color:#222;}
+  header{background:#0077cc;color:#fff;padding:12px;text-align:center;font-size:22px;}
+  .container{width:95%;max-width:980px;margin:18px auto;background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.12);}
+  .hidden{display:none;}
+  button{background:#0077cc;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin:4px;}
+  button:hover{opacity:0.95;}
+  input, select{padding:8px;border:1px solid #ddd;border-radius:6px;margin:4px 2px;}
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th,td{border:1px solid #ddd;padding:8px;text-align:center;}
+  th{background:#0077cc;color:#fff;}
+  .red{background:#ffdddd;}
+  .tab-btn{background:#eee;color:#000;padding:8px;border-radius:6px;margin-right:6px;border:none;}
+  .tab-btn.active{background:#0077cc;color:#fff;}
+  .flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  a{color:#0077cc;cursor:pointer;}
+  .small{font-size:13px;color:#555}
+  .note{font-size:14px;color:#444;margin-top:6px}
 </style>
 </head>
 <body>
-<header>লেবার কাজ এবং বিল ব্যবস্থাপনা</header>
+<header>লেবার কাজ এবং বিল ব্যবস্থাপনা (Google Sheets)</header>
 
 <div class="container" id="loginPage">
-  <h3>লগইন করুন</h3>
-  <button onclick="adminLogin()">Admin Login</button>
-  <button onclick="openDashboard('viewer')">View Details</button>
+  <h3>লগইন</h3>
+  <div class="flex">
+    <button onclick="adminLogin()">Admin Login</button>
+    <button onclick="openDashboard('viewer')">View Details</button>
+  </div>
+  <p class="note">Admin password: <strong>2005</strong></p>
 </div>
 
 <div class="container hidden" id="passwordBox">
   <h3>অ্যাডমিন পাসওয়ার্ড দিন</h3>
-  <input type="password" id="adminPass" placeholder="Enter Password">
+  <input type="password" id="adminPass" placeholder="Password">
   <button onclick="checkPassword()">Submit</button>
+  <button onclick="backToLogin()">Back</button>
 </div>
 
 <div class="container hidden" id="dashboard">
-  <div>
+  <div class="flex">
     <button class="tab-btn active" id="dailyTab" onclick="showTab('daily')">Daily Work</button>
     <button class="tab-btn" id="permTab" onclick="showTab('perm')">Permanent Workers</button>
+    <div style="flex:1"></div>
     <button onclick="logout()">Logout</button>
   </div>
 
-  <!-- Daily Section -->
+  <!-- Daily -->
   <div id="dailySection">
-    <h3>দৈনিক কাজের তালিকা</h3>
-    <div id="adminControls" class="hidden">
-      <input type="text" id="name" placeholder="নাম">
-      <input type="date" id="date">
-      <input type="text" id="details" placeholder="বিবরণ">
-      <input type="number" id="baki" placeholder="বাকী">
-      <input type="number" id="jama" placeholder="জমা">
-      <input type="number" id="total" placeholder="মোট">
-      <button onclick="addRecord()">Add</button>
+    <h3>দৈনিক কাজ</h3>
+
+    <div id="adminControls" class="hidden" style="margin-bottom:8px;">
+      <div class="flex">
+        <!-- name input with datalist for suggestions -->
+        <div>
+          <input id="nameInput" list="namesList" placeholder="নাম">
+          <datalist id="namesList"></datalist>
+        </div>
+        <input id="dateInput" type="date">
+        <input id="detailsInput" placeholder="বিবরণ (ex: Payment or Brick work)">
+        <input id="bakiInput" type="number" placeholder="বাকী">
+        <input id="jamaInput" type="number" placeholder="জমা">
+        <input id="totalInput" type="number" placeholder="মোট">
+        <button onclick="addRecord()">Add</button>
+      </div>
+      <div class="small">Tip: write "Payment" in বিবরণ when you pay so the row becomes red.</div>
     </div>
+
     <table id="dailyTable">
       <thead>
-        <tr>
-          <th>নাম</th><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th class="admin-only hidden">অ্যাকশন</th>
-        </tr>
+        <tr><th>নাম</th><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th class="admin-only hidden">অ্যাকশন</th></tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <!-- Permanent Section -->
+  <!-- Permanent -->
   <div id="permSection" class="hidden">
-    <h3>স্থায়ী শ্রমিক তালিকা</h3>
+    <h3>স্থায়ী শ্রমিক</h3>
     <table id="workerTable">
       <thead>
-        <tr><th>নাম</th><th>মোট বাকী</th><th>মোট জমা</th><th>মোট কাজ</th></tr>
+        <tr><th>নাম</th><th>মোট বাকী</th><th>মোট জমা</th><th>মোট (ব্যালান্স)</th><th>মোট কাজ</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -77,181 +94,288 @@
 
 <!-- Worker Details -->
 <div class="container hidden" id="workerDetails">
-  <h3 id="workerTitle"></h3>
+  <h3 id="workerTitle">Worker</h3>
   <table>
-    <thead>
-      <tr><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th></tr>
-    </thead>
+    <thead><tr><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th>মোট (রানিং)</th></tr></thead>
     <tbody id="workerDetailBody"></tbody>
   </table>
-  <button onclick="closeWorkerDetails()">Back</button>
+  <div style="margin-top:10px;">
+    <button onclick="closeWorkerDetails()">Back</button>
+  </div>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-  // Import Firebase modules
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } 
-  from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<script>
+/* =========================
+   CONFIG: put your Apps Script URL here
+   ========================= */
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE"; // e.g. https://script.google.com/macros/s/XXXXX/exec
 
-  // TODO: ADD YOUR FIREBASE CONFIG HERE
-  const firebaseConfig = {
-  apiKey: "AIzaSyDd4hJ1iDQWFDooMdkqs1r9k7RfgEytH90",
-  authDomain: "labor-project-7089b.firebaseapp.com",
-  projectId: "labor-project-7089b",
-  storageBucket: "labor-project-7089b.firebasestorage.app",
-  messagingSenderId: "862029220833",
-  appId: "1:862029220833:web:8e8f5170b105c0fe4660a0",
-  measurementId: "G-2Z8QPVLPRM"
-};
+/* =========================
+   App state
+   ========================= */
+let mode = ""; // 'admin' or 'viewer'
+let records = []; // cached records
+let workers = []; // cached workers
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const dailyCol = collection(db, "dailyRecords");
-
-  let mode = "";
-
-  // ---------- LOGIN ----------
-  window.adminLogin = () => {
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("passwordBox").classList.remove("hidden");
-  };
-
-  window.checkPassword = () => {
-    const pass = document.getElementById("adminPass").value;
-    if (pass === "2005") openDashboard("admin");
-    else alert("Wrong password!");
-  };
-
-  window.openDashboard = async (type) => {
-    mode = type;
-    document.getElementById("loginPage").classList.add("hidden");
-    document.getElementById("passwordBox").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
-    if (mode === "admin") {
-      document.getElementById("adminControls").classList.remove("hidden");
-      document.querySelectorAll(".admin-only").forEach(e=>e.classList.remove("hidden"));
-    }
-    await loadDailyTable();
+/* ---------- UI helpers ---------- */
+function adminLogin(){
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('passwordBox').classList.remove('hidden');
+}
+function backToLogin(){
+  document.getElementById('passwordBox').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+}
+function checkPassword(){
+  const pass = document.getElementById('adminPass').value.trim();
+  if(pass === "2005") openDashboard('admin');
+  else alert('Wrong password!');
+}
+function openDashboard(type){
+  mode = type;
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('passwordBox').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  if(mode === 'admin'){
+    document.getElementById('adminControls').classList.remove('hidden');
+    document.querySelectorAll('.admin-only').forEach(e=>e.classList.remove('hidden'));
+  }
+  loadAllData();
+}
+function logout(){
+  location.reload();
+}
+function showTab(tab){
+  if(tab === 'daily'){
+    document.getElementById('dailySection').classList.remove('hidden');
+    document.getElementById('permSection').classList.add('hidden');
+    document.getElementById('dailyTab').classList.add('active');
+    document.getElementById('permTab').classList.remove('active');
+  } else {
+    document.getElementById('dailySection').classList.add('hidden');
+    document.getElementById('permSection').classList.remove('hidden');
+    document.getElementById('dailyTab').classList.remove('active');
+    document.getElementById('permTab').classList.add('active');
     loadWorkerTable();
-  };
+  }
+}
 
-  window.logout = () => location.reload();
+/* ---------- API helpers ---------- */
+async function apiGet(params = {}) {
+  const url = new URL(API_URL);
+  Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+  const res = await fetch(url.toString());
+  return res.json();
+}
+async function apiPost(body = {}) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
 
-  window.showTab = (tab) => {
-    if (tab === "daily") {
-      document.getElementById("dailySection").classList.remove("hidden");
-      document.getElementById("permSection").classList.add("hidden");
-      document.getElementById("dailyTab").classList.add("active");
-      document.getElementById("permTab").classList.remove("active");
+/* ---------- Data functions ---------- */
+async function loadAllData(){
+  // get records and workers concurrently
+  try {
+    const [r1, r2] = await Promise.all([
+      apiGet({action:'getAll'}),
+      apiGet({action:'getWorkers'})
+    ]);
+    if(r1.success) records = r1.data || []; else records = [];
+    if(r2.success) workers = r2.data || []; else workers = [];
+    updateNamesDatalist();
+    renderDailyTable();
+    renderWorkerTable();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load data. Check API URL and deployment.');
+  }
+}
+
+function updateNamesDatalist(){
+  // gather names from workers + records, unique
+  const namesSet = new Set();
+  workers.forEach(n => namesSet.add(String(n).trim()));
+  records.forEach(r => {
+    if(r.name) namesSet.add(String(r.name).trim());
+  });
+  const list = Array.from(namesSet).filter(x => x && x.length).sort((a,b)=> a.localeCompare(b,'bn') );
+  const datalist = document.getElementById('namesList');
+  datalist.innerHTML = '';
+  list.forEach(n => {
+    const option = document.createElement('option');
+    option.value = n;
+    datalist.appendChild(option);
+  });
+}
+
+/* ---------- Daily Table UI ---------- */
+function renderDailyTable(){
+  const tbody = document.querySelector('#dailyTable tbody');
+  tbody.innerHTML = '';
+  // sort by date ascending
+  const data = records.slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+  data.forEach(rec => {
+    const tr = document.createElement('tr');
+    if((rec.details && String(rec.details).toLowerCase().includes('payment')) || parseFloat(rec.jama) > 0) tr.classList.add('red');
+    tr.innerHTML = `
+      <td>${escapeHtml(rec.name||'')}</td>
+      <td>${escapeHtml(rec.date||'')}</td>
+      <td>${escapeHtml(rec.details||'')}</td>
+      <td>${rec.baki||0}</td>
+      <td>${rec.jama||0}</td>
+      <td>${rec.total||0}</td>
+      ${mode==='admin' ? `<td class="admin-only"><button onclick="editRecord('${rec.id}')">Edit</button> <button onclick="deleteRecord('${rec.id}')">Delete</button></td>` : ''}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Worker Table UI (Permanent list) ---------- */
+function renderWorkerTable(){
+  // compute totals per worker
+  const map = {};
+  records.forEach(r => {
+    const n = r.name || 'Unknown';
+    if(!map[n]) map[n] = { baki:0, jama:0, count:0 };
+    map[n].baki += parseFloat(r.baki||0);
+    map[n].jama += parseFloat(r.jama||0);
+    map[n].count += 1;
+  });
+  // ensure workers list included even if no records
+  workers.forEach(w => {
+    if(!map[w]) map[w] = { baki:0, jama:0, count:0 };
+  });
+
+  const tbody = document.querySelector('#workerTable tbody');
+  tbody.innerHTML = '';
+  Object.keys(map).sort((a,b)=> a.localeCompare(b,'bn')).forEach(name => {
+    const item = map[name];
+    const balance = (item.baki - item.jama);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><a onclick="showWorkerDetails('${escapeJS(name)}')">${escapeHtml(name)}</a></td>
+      <td>${item.baki.toFixed(2)}</td>
+      <td>${item.jama.toFixed(2)}</td>
+      <td>${balance.toFixed(2)}</td>
+      <td>${item.count}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Add / Edit / Delete ---------- */
+async function addRecord(){
+  const name = document.getElementById('nameInput').value.trim();
+  const date = document.getElementById('dateInput').value;
+  const details = document.getElementById('detailsInput').value.trim();
+  const baki = parseFloat(document.getElementById('bakiInput').value) || 0;
+  const jama = parseFloat(document.getElementById('jamaInput').value) || 0;
+  const total = parseFloat(document.getElementById('totalInput').value) || 0;
+  if(!name || !date) return alert('নাম এবং তারিখ দেয়া লাগব');
+  try {
+    const res = await apiPost({ action: 'addRecord', record: { name, date, details, baki, jama, total } });
+    if(res.success){
+      // refresh
+      await loadAllData();
+      // clear inputs
+      document.getElementById('nameInput').value='';
+      document.getElementById('dateInput').value='';
+      document.getElementById('detailsInput').value='';
+      document.getElementById('bakiInput').value='';
+      document.getElementById('jamaInput').value='';
+      document.getElementById('totalInput').value='';
     } else {
-      document.getElementById("dailySection").classList.add("hidden");
-      document.getElementById("permSection").classList.remove("hidden");
-      document.getElementById("dailyTab").classList.remove("active");
-      document.getElementById("permTab").classList.add("active");
+      alert('Failed to add: '+(res.error||'unknown'));
     }
-  };
-
-  // ---------- DATA FUNCTIONS ----------
-  async function loadDailyTable() {
-    const tbody = document.querySelector("#dailyTable tbody");
-    tbody.innerHTML = "";
-    const snap = await getDocs(dailyCol);
-    let data = [];
-    snap.forEach(docu => {
-      data.push({ id: docu.id, ...docu.data() });
-    });
-    data.sort((a,b)=> new Date(a.date) - new Date(b.date));
-    data.forEach(rec => {
-      const tr = document.createElement("tr");
-      if (rec.details.toLowerCase().includes("payment") || rec.jama > 0) tr.classList.add("red");
-      tr.innerHTML = `
-        <td>${rec.name}</td><td>${rec.date}</td><td>${rec.details}</td>
-        <td>${rec.baki}</td><td>${rec.jama}</td><td>${rec.total}</td>
-        ${mode==="admin"?`<td class="admin-only"><button onclick="editRecord('${rec.id}')">Edit</button><button onclick="deleteRecord('${rec.id}')">Delete</button></td>`:""}
-      `;
-      tbody.appendChild(tr);
-    });
+  } catch (err) {
+    console.error(err);
+    alert('Network error while adding record');
   }
+}
 
-  window.addRecord = async () => {
-    const name = document.getElementById("name").value.trim();
-    const date = document.getElementById("date").value;
-    const details = document.getElementById("details").value.trim();
-    const baki = parseFloat(document.getElementById("baki").value)||0;
-    const jama = parseFloat(document.getElementById("jama").value)||0;
-    const total = parseFloat(document.getElementById("total").value)||0;
-    if(!name || !date) return alert("নাম এবং তারিখ দিন");
-    await addDoc(dailyCol, {name, date, details, baki, jama, total});
-    await loadDailyTable();
-    loadWorkerTable();
-    document.querySelectorAll('#adminControls input').forEach(i=>i.value="");
-  };
+async function editRecord(id){
+  // find record
+  const rec = records.find(r=>r.id === id);
+  if(!rec) return alert('Record not found');
+  const name = prompt('নাম:', rec.name) || rec.name;
+  const date = prompt('তারিখ (YYYY-MM-DD):', rec.date) || rec.date;
+  const details = prompt('বিবরণ:', rec.details) || rec.details;
+  const baki = parseFloat(prompt('বাকী:', rec.baki) || rec.baki) || 0;
+  const jama = parseFloat(prompt('জমা:', rec.jama) || rec.jama) || 0;
+  const total = parseFloat(prompt('মোট:', rec.total) || rec.total) || 0;
+  try {
+    const res = await apiPost({ action: 'updateRecord', id, record: { name, date, details, baki, jama, total }});
+    if(res.success){
+      await loadAllData();
+    } else alert('Update failed: '+(res.error||''));
+  } catch (err) { alert('Network error'); console.error(err); }
+}
 
-  window.deleteRecord = async (id) => {
-    if(confirm("আপনি কি মুছে ফেলতে চান?")){
-      await deleteDoc(doc(db, "dailyRecords", id));
-      await loadDailyTable();
-      loadWorkerTable();
-    }
-  };
+async function deleteRecord(id){
+  if(!confirm('আপনি কি রেকর্ডটি মুছে ফেলবেন?')) return;
+  try {
+    const res = await apiPost({ action: 'deleteRecord', id });
+    if(res.success){
+      await loadAllData();
+    } else alert('Delete failed: '+(res.error||''));
+  } catch (err) { alert('Network error'); console.error(err); }
+}
 
-  window.editRecord = async (id) => {
-    const recDoc = doc(db, "dailyRecords", id);
-    const name = prompt("নাম:");
-    const date = prompt("তারিখ:");
-    const details = prompt("বিবরণ:");
-    const baki = prompt("বাকী:");
-    const jama = prompt("জমা:");
-    const total = prompt("মোট:");
-    await updateDoc(recDoc, {name, date, details, baki:parseFloat(baki)||0, jama:parseFloat(jama)||0, total:parseFloat(total)||0});
-    await loadDailyTable();
-    loadWorkerTable();
-  };
+/* ---------- Worker Details (with running total) ---------- */
+async function showWorkerDetails(name){
+  // show dashboard -> worker details UI
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('workerDetails').classList.remove('hidden');
+  document.getElementById('workerTitle').innerText = name + " - বিস্তারিত";
+  // filter records
+  const data = records.filter(r => (r.name || '').toString() === name).slice().sort((a,b)=> new Date(a.date) - new Date(b.date));
+  const tbody = document.getElementById('workerDetailBody');
+  tbody.innerHTML = '';
+  let running = 0;
+  data.forEach(r => {
+    running += (parseFloat(r.baki||0) - parseFloat(r.jama||0));
+    const tr = document.createElement('tr');
+    if((r.details && String(r.details).toLowerCase().includes('payment')) || parseFloat(r.jama) > 0) tr.classList.add('red');
+    tr.innerHTML = `
+      <td>${escapeHtml(r.date||'')}</td>
+      <td>${escapeHtml(r.details||'')}</td>
+      <td>${(parseFloat(r.baki)||0).toFixed(2)}</td>
+      <td>${(parseFloat(r.jama)||0).toFixed(2)}</td>
+      <td>${(parseFloat(r.total)||0).toFixed(2)}</td>
+      <td>${running.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-  async function loadWorkerTable() {
-    const tbody = document.querySelector("#workerTable tbody");
-    tbody.innerHTML = "";
-    const snap = await getDocs(dailyCol);
-    const data = [];
-    snap.forEach(docu => data.push(docu.data()));
-    const workers = {};
-    data.forEach(r=>{
-      if(!workers[r.name]) workers[r.name]={baki:0,jama:0,count:0};
-      workers[r.name].baki+=r.baki;
-      workers[r.name].jama+=r.jama;
-      workers[r.name].count++;
-    });
-    for(let name in workers){
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td><a href="#" onclick="showWorkerDetails('${name}')">${name}</a></td>
-                    <td>${workers[name].baki}</td><td>${workers[name].jama}</td><td>${workers[name].count}</td>`;
-      tbody.appendChild(tr);
-    }
-  }
+function closeWorkerDetails(){
+  document.getElementById('workerDetails').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+}
 
-  window.showWorkerDetails = async (name) => {
-    document.getElementById("dashboard").classList.add("hidden");
-    document.getElementById("workerDetails").classList.remove("hidden");
-    document.getElementById("workerTitle").innerText = name + " - বিস্তারিত তথ্য";
-    const tbody = document.getElementById("workerDetailBody");
-    tbody.innerHTML = "";
-    const snap = await getDocs(dailyCol);
-    const data = [];
-    snap.forEach(docu => data.push(docu.data()));
-    const workerData = data.filter(r=>r.name===name).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    workerData.forEach(r=>{
-      const tr=document.createElement("tr");
-      if(r.details.toLowerCase().includes("payment") || r.jama>0) tr.classList.add("red");
-      tr.innerHTML=`<td>${r.date}</td><td>${r.details}</td><td>${r.baki}</td><td>${r.jama}</td><td>${r.total}</td>`;
-      tbody.appendChild(tr);
-    });
-  };
+/* ---------- Utilities ---------- */
+function escapeHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+function escapeJS(s){
+  return String(s).replace(/'/g,"\\'").replace(/"/g,'\\"');
+}
 
-  window.closeWorkerDetails = ()=>{
-    document.getElementById("workerDetails").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
-  };
+/* ---------- On load: nothing, wait for user to login ---------- */
+
+// If you want auto-load viewer mode: uncomment below line and set API_URL
+// openDashboard('viewer');
+
 </script>
 </body>
 </html>
