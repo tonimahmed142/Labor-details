@@ -1,374 +1,435 @@
 <!doctype html>
 <html lang="bn">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>লেবার ম্যানেজমেন্ট (Google Sheets)</title>
-  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
-  <style>
-    body { font-family: Arial, "Noto Sans Bengali", sans-serif; background: #f4f4f4; }
-    header { background: #0077cc; color: #fff; padding: 12px; text-align: center; font-size: 20px; }
-    .container { max-width: 1000px; margin: 18px auto; padding: 14px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #0077cc; color: #fff; }
-    .red { background: #ffdddd; }
-    .tab-btn { margin-right: 6px; }
-    input, select, textarea { padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
-    .small { font-size: 13px; color: #555; }
-    a.pointer { cursor: pointer; color: #0077cc; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>লেবার ম্যানেজমেন্ট (Offline)</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body{font-family: "Noto Sans Bengali", Arial, sans-serif; background:#f4f4f4; color:#222}
+  header{background:#0077cc;color:#fff;padding:14px;text-align:center;font-weight:600}
+  .app{max-width:1100px;margin:18px auto;padding:16px;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,0.08)}
+  .hidden{display:none}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;border:1px solid #e1e1e1;text-align:center}
+  th{background:#0077cc;color:#fff}
+  .red{background:#ffdddd}
+  .tab-btn{margin-right:6px}
+  input,select,textarea{padding:6px;border:1px solid #ddd;border-radius:5px}
+  .small{font-size:13px;color:#555}
+  a.pointer{cursor:pointer;color:#0077cc}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .controls > *{min-width:120px}
+  .btn-small{padding:.375rem .5rem;font-size:.85rem}
+  @media(max-width:820px){
+    .controls{flex-direction:column;align-items:stretch}
+    .controls > *{width:100%}
+  }
+</style>
 </head>
 <body>
-  <header>লেবার কাজ এবং বিল - Google Sheets</header>
+<header>লেবার কাজ ও বিল — Offline (localStorage)</header>
 
-  <div class="container" id="loginPage">
-    <h4>লগইন</h4>
-    <div>
-      <button class="btn btn-primary" onclick="adminLogin()">Admin Login</button>
-      <button class="btn btn-outline-primary" onclick="openDashboard('viewer')">View Details</button>
-    </div>
-    <p class="small mt-2">Admin password: <strong>2005</strong></p>
+<div class="app" id="loginPage">
+  <h4>লগইন</h4>
+  <div class="mb-2">
+    <button class="btn btn-primary" onclick="adminLogin()">Admin Login</button>
+    <button class="btn btn-outline-primary" onclick="openDashboard('viewer')">View Details</button>
+    <button class="btn btn-sm btn-secondary float-right" onclick="exportCSV()">Export CSV</button>
+    <label class="btn btn-sm btn-info mb-0 float-right mr-2">
+      Import CSV <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(event)">
+    </label>
   </div>
+  <p class="small">Admin password: <strong>2005</strong></p>
+  <p class="small">Data saved locally on this browser. Use Export CSV to backup.</p>
+</div>
 
-  <div class="container hidden" id="passwordBox">
-    <h5>অ্যাডমিন পাসওয়ার্ড দিন</h5>
-    <input id="adminPass" type="password" placeholder="Password">
+<div class="app hidden" id="passwordBox">
+  <h5>অ্যাডমিন পাসওয়ার্ড দিন</h5>
+  <div class="d-flex" style="gap:8px">
+    <input id="adminPass" type="password" class="form-control" placeholder="Password">
     <button class="btn btn-primary" onclick="checkPassword()">Submit</button>
     <button class="btn btn-secondary" onclick="backToLogin()">Back</button>
   </div>
+</div>
 
-  <div class="container hidden" id="dashboard">
-    <div class="d-flex align-items-center mb-2">
-      <button class="btn btn-sm btn-outline-secondary tab-btn" id="dailyTab" onclick="showTab('daily')">Daily Work</button>
-      <button class="btn btn-sm btn-outline-secondary tab-btn" id="permTab" onclick="showTab('perm')">Permanent Workers</button>
-      <div style="flex:1"></div>
-      <button class="btn btn-sm btn-danger" onclick="logout()">Logout</button>
-    </div>
-
-    <div id="dailySection">
-      <h5>দৈনিক কাজ</h5>
-      <div id="adminControls" class="mb-2 hidden">
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <div>
-            <input id="nameInput" list="namesList" placeholder="নাম">
-            <datalist id="namesList"></datalist>
-          </div>
-          <input id="dateInput" type="date">
-          <input id="detailsInput" placeholder="বিবরণ (e.g. Payment)">
-          <input id="bakiInput" type="number" placeholder="বাকী">
-          <input id="jamaInput" type="number" placeholder="জমা">
-          <input id="totalInput" type="number" placeholder="মোট">
-          <select id="sectionInput">
-            <option value="daily">Daily</option>
-            <option value="permanent">Permanent</option>
-          </select>
-          <button class="btn btn-primary" onclick="addRecord()">Add</button>
-        </div>
-        <div class="small mt-1">Tip: include "Payment" in বিবরণ or set জমা > 0 to mark a payment row.</div>
-      </div>
-
-      <table id="dailyTable">
-        <thead>
-          <tr>
-            <th>নাম</th><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th class="admin-only hidden">Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div id="permSection" class="hidden">
-      <h5>স্থায়ী শ্রমিক</h5>
-      <table id="workerTable">
-        <thead>
-          <tr>
-            <th>নাম</th><th>মোট বাকী</th><th>মোট জমা</th><th>মোট (ব্যালান্স)</th><th>মোট কাজ</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+<div class="app hidden" id="dashboard">
+  <div class="d-flex align-items-center mb-2">
+    <button class="btn btn-sm btn-outline-secondary tab-btn" id="dailyTabBtn" onclick="showTab('daily')">Daily Work</button>
+    <button class="btn btn-sm btn-outline-secondary tab-btn" id="permTabBtn" onclick="showTab('perm')">Permanent Workers</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-sm btn-warning btn-small mr-2" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-sm btn-danger btn-small" onclick="clearAllConfirm()">Clear All</button>
+    <button class="btn btn-sm btn-secondary btn-small ml-2" onclick="logout()">Logout</button>
   </div>
 
-  <div class="container hidden" id="workerDetails">
-    <h5 id="workerTitle">Worker</h5>
-    <table>
+  <!-- DAILY -->
+  <div id="dailySection">
+    <h5>দৈনিক কাজ</h5>
+    <div id="adminControls" class="mb-2 hidden">
+      <div class="controls">
+        <div>
+          <input id="nameInput" list="namesList" class="form-control" placeholder="নাম">
+          <datalist id="namesList"></datalist>
+        </div>
+        <input id="dateInput" type="date" class="form-control" />
+        <input id="detailsInput" class="form-control" placeholder="বিবরণ (উদাহরণ: Payment, Brick work)" />
+        <input id="bakiInput" type="number" class="form-control" placeholder="বাকী" />
+        <input id="jamaInput" type="number" class="form-control" placeholder="জমা" />
+        <input id="totalInput" type="number" class="form-control" placeholder="মোট" />
+        <select id="sectionInput" class="form-control">
+          <option value="daily">Daily</option>
+          <option value="permanent">Permanent</option>
+        </select>
+        <button class="btn btn-primary" onclick="addRecord()">Add</button>
+      </div>
+      <div class="small mt-1">Tip: লেখনায় "Payment" লিখলে অথবা জমা (জমা) > 0 হলে ওই সারি লাল দেখাবে।</div>
+    </div>
+
+    <table id="dailyTable">
       <thead>
         <tr>
-          <th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th>মোট (রানিং)</th>
+          <th>নাম</th><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th class="admin-only hidden">Action</th>
         </tr>
       </thead>
-      <tbody id="workerDetailBody"></tbody>
+      <tbody></tbody>
     </table>
-    <div class="mt-2"><button class="btn btn-secondary" onclick="closeWorkerDetails()">Back</button></div>
   </div>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjK-JmJv1CeELnj-j76gJcpKb9vYwZ-UUHJ8QPUrmcyrrmJ4nMW4P0gS75fhq9GUfE/exec";
-    const CSV_URL = "";  // if you get your sheet published as CSV, paste URL here as backup fallback
+  <!-- PERMANENT -->
+  <div id="permSection" class="hidden mt-3">
+    <h5>স্থায়ী শ্রমিক</h5>
+    <div class="small mb-2">Click a name to see detailed history (row-by-row) with running total.</div>
+    <table id="workerTable">
+      <thead>
+        <tr><th>নাম</th><th>মোট বাকী</th><th>মোট জমা</th><th>মোট (ব্যালান্স)</th><th>মোট কাজ</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
 
-    let mode = "";
-    let records = [];
+<!-- Worker details -->
+<div class="app hidden" id="workerDetails">
+  <h5 id="workerTitle">Worker</h5>
+  <table>
+    <thead><tr><th>তারিখ</th><th>বিবরণ</th><th>বাকী</th><th>জমা</th><th>মোট</th><th>মোট (রানিং)</th></tr></thead>
+    <tbody id="workerDetailBody"></tbody>
+  </table>
+  <div class="mt-2"><button class="btn btn-secondary" onclick="closeWorkerDetails()">Back</button></div>
+</div>
 
-    function adminLogin(){ document.getElementById('loginPage').classList.add('hidden'); document.getElementById('passwordBox').classList.remove('hidden'); }
-    function backToLogin(){ document.getElementById('passwordBox').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); }
-    function checkPassword(){ const pass = document.getElementById('adminPass').value.trim(); if(pass === "2005") openDashboard('admin'); else alert('Wrong password!'); }
-    function openDashboard(t){ mode = t; document.getElementById('loginPage').classList.add('hidden'); document.getElementById('passwordBox').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); if(mode==='admin'){ document.getElementById('adminControls').classList.remove('hidden'); document.querySelectorAll('.admin-only').forEach(e=>e.classList.remove('hidden')); } loadAll(); }
-    function logout(){ location.reload(); }
-    function showTab(tab){ if(tab==='daily'){ document.getElementById('dailySection').classList.remove('hidden'); document.getElementById('permSection').classList.add('hidden'); } else { document.getElementById('dailySection').classList.add('hidden'); document.getElementById('permSection').classList.remove('hidden'); renderWorkerTable(); } }
+<script>
+/* ===========================
+   Offline app using localStorage
+   =========================== */
 
-    async function loadAll(){
-      try {
-        const url = new URL(SCRIPT_URL);
-        url.searchParams.set('action','getAll');
-        const res = await fetch(url.toString());
-        if(res.ok){
-          const json = await res.json();
-          if(json && json.success && Array.isArray(json.data)){
-            records = normalizeRecords(json.data);
-            updateNamesList();
-            renderDailyTable();
-            renderWorkerTable();
-            return;
-          }
-        }
-      } catch(e){
-        console.warn('Apps Script GET failed:', e);
-      }
-      if(CSV_URL){
-        try {
-          const r = await fetch(CSV_URL);
-          if(r.ok){
-            const text = await r.text();
-            const parsed = parseCSV(text);
-            records = normalizeRecords(parsed);
-            updateNamesList();
-            renderDailyTable();
-            renderWorkerTable();
-            return;
-          }
-        } catch(err){
-          console.warn('CSV fetch failed:', err);
-        }
-      }
-      records = [];
-      updateNamesList();
+const STORAGE_KEY = 'laborRecords_v1'; // if you want to reset structure later, change version
+
+let mode = ''; // 'admin' or 'viewer'
+let records = []; // array of {id, name, date, description, baki, jama, total, section}
+document.addEventListener('DOMContentLoaded', ()=> {
+  // nothing until login
+});
+
+/* -------------------------
+   Auth / Navigation
+   ------------------------- */
+function adminLogin(){ document.getElementById('loginPage').classList.add('hidden'); document.getElementById('passwordBox').classList.remove('hidden'); }
+function backToLogin(){ document.getElementById('passwordBox').classList.add('hidden'); document.getElementById('loginPage').classList.remove('hidden'); }
+function checkPassword(){ const p = document.getElementById('adminPass').value; if(p === '2005') openDashboard('admin'); else alert('Wrong password!'); }
+function openDashboard(t){
+  mode = t;
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('passwordBox').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  if(mode === 'admin'){ document.getElementById('adminControls').classList.remove('hidden'); document.querySelectorAll('.admin-only').forEach(e=>e.classList.remove('hidden')); }
+  loadFromStorage();
+  showTab('daily');
+}
+function logout(){ location.reload(); }
+function showTab(tab){
+  if(tab === 'daily'){
+    document.getElementById('dailySection').classList.remove('hidden');
+    document.getElementById('permSection').classList.add('hidden');
+    document.getElementById('dailyTabBtn').classList.add('btn-primary');
+    document.getElementById('permTabBtn').classList.remove('btn-primary');
+  } else {
+    document.getElementById('dailySection').classList.add('hidden');
+    document.getElementById('permSection').classList.remove('hidden');
+    document.getElementById('dailyTabBtn').classList.remove('btn-primary');
+    document.getElementById('permTabBtn').classList.add('btn-primary');
+    renderWorkerTable();
+  }
+}
+
+/* -------------------------
+   Storage
+   ------------------------- */
+function loadFromStorage(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    records = raw ? JSON.parse(raw) : [];
+  } catch(e){
+    console.error('loadFromStorage error', e);
+    records = [];
+  }
+  updateNamesDatalist();
+  renderDailyTable();
+  renderWorkerTable();
+}
+
+function saveToStorage(){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  } catch(e){
+    console.error('saveToStorage error', e);
+  }
+}
+
+/* -------------------------
+   Add / Edit / Delete
+   ------------------------- */
+function addRecord(){
+  const name = document.getElementById('nameInput').value.trim();
+  const date = document.getElementById('dateInput').value;
+  const description = document.getElementById('detailsInput').value.trim();
+  const baki = parseFloat(document.getElementById('bakiInput').value) || 0;
+  const jama = parseFloat(document.getElementById('jamaInput').value) || 0;
+  const total = parseFloat(document.getElementById('totalInput').value) || 0;
+  const section = document.getElementById('sectionInput').value || 'daily';
+  if(!name || !date){ alert('নাম এবং তারিখ দিন'); return; }
+  const id = Date.now().toString(36) + Math.floor(Math.random()*1000);
+  records.push({ id, name, date, description, baki, jama, total, section });
+  saveToStorage();
+  clearAddInputs();
+  updateNamesDatalist();
+  renderDailyTable();
+  renderWorkerTable();
+}
+
+function clearAddInputs(){
+  document.getElementById('nameInput').value='';
+  document.getElementById('dateInput').value='';
+  document.getElementById('detailsInput').value='';
+  document.getElementById('bakiInput').value='';
+  document.getElementById('jamaInput').value='';
+  document.getElementById('totalInput').value='';
+  document.getElementById('sectionInput').value='daily';
+}
+
+function editRecord(id){
+  const rec = records.find(r=> r.id === id);
+  if(!rec) return alert('Record not found');
+  const name = prompt('নাম:', rec.name) || rec.name;
+  const date = prompt('তারিখ (YYYY-MM-DD):', rec.date) || rec.date;
+  const description = prompt('বিবরণ:', rec.description) || rec.description;
+  const baki = parseFloat(prompt('বাকী:', rec.baki) || rec.baki) || 0;
+  const jama = parseFloat(prompt('জমা:', rec.jama) || rec.jama) || 0;
+  const total = parseFloat(prompt('মোট:', rec.total) || rec.total) || 0;
+  rec.name = name; rec.date = date; rec.description = description; rec.baki = baki; rec.jama = jama; rec.total = total;
+  saveToStorage();
+  updateNamesDatalist();
+  renderDailyTable();
+  renderWorkerTable();
+}
+
+function deleteRecord(id){
+  if(!confirm('আপনি কি রেকর্ডটি মুছে ফেলতে চান?')) return;
+  records = records.filter(r=> r.id !== id);
+  saveToStorage();
+  updateNamesDatalist();
+  renderDailyTable();
+  renderWorkerTable();
+}
+
+/* -------------------------
+   Rendering tables
+   ------------------------- */
+function renderDailyTable(){
+  const tbody = document.querySelector('#dailyTable tbody');
+  tbody.innerHTML = '';
+  const data = records.slice().filter(r => r.section === 'daily' || !r.section).sort((a,b) => new Date(a.date) - new Date(b.date));
+  data.forEach(r=>{
+    const tr = document.createElement('tr');
+    if((r.description||'').toLowerCase().includes('payment') || (parseFloat(r.jama)||0) > 0) tr.classList.add('red');
+    const actions = mode === 'admin' ? `<td><button class="btn btn-sm btn-info btn-small mr-1" onclick="editRecord('${r.id}')">Edit</button><button class="btn btn-sm btn-danger btn-small" onclick="deleteRecord('${r.id}')">Delete</button></td>` : '';
+    tr.innerHTML = `<td>${escapeHtml(r.name)}</td>
+                    <td>${escapeHtml(r.date)}</td>
+                    <td>${escapeHtml(r.description)}</td>
+                    <td>${(parseFloat(r.baki)||0).toFixed(2)}</td>
+                    <td>${(parseFloat(r.jama)||0).toFixed(2)}</td>
+                    <td>${(parseFloat(r.total)||0).toFixed(2)}</td>
+                    ${actions}`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderWorkerTable(){
+  const tbody = document.querySelector('#workerTable tbody');
+  tbody.innerHTML = '';
+  const map = {}; // name -> {baki,jama,count}
+  records.forEach(r=>{
+    const n = r.name || 'Unknown';
+    if(!map[n]) map[n] = { baki:0, jama:0, count:0 };
+    map[n].baki += parseFloat(r.baki || 0);
+    map[n].jama += parseFloat(r.jama || 0);
+    map[n].count += 1;
+  });
+  // include names from records only (you can add manual permanent names by adding records with section 'permanent')
+  Object.keys(map).sort((a,b)=> a.localeCompare(b,'bn')).forEach(name=>{
+    const it = map[name];
+    const balance = it.baki - it.jama;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><a class="pointer" onclick="showWorkerDetails('${escapeJS(name)}')">${escapeHtml(name)}</a></td>
+                    <td>${it.baki.toFixed(2)}</td>
+                    <td>${it.jama.toFixed(2)}</td>
+                    <td>${balance.toFixed(2)}</td>
+                    <td>${it.count}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* -------------------------
+   Worker details (row-by-row) with running total
+   ------------------------- */
+function showWorkerDetails(name){
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('workerDetails').classList.remove('hidden');
+  document.getElementById('workerTitle').innerText = name + ' - কার্যকারিতা';
+  const data = records.filter(r => (r.name||'') === name).slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+  const tbody = document.getElementById('workerDetailBody');
+  tbody.innerHTML = '';
+  let running = 0;
+  data.forEach(r=>{
+    running += (parseFloat(r.baki || 0) - parseFloat(r.jama || 0));
+    const tr = document.createElement('tr');
+    if((r.description||'').toLowerCase().includes('payment') || (parseFloat(r.jama)||0) > 0) tr.classList.add('red');
+    tr.innerHTML = `<td>${escapeHtml(r.date)}</td>
+                    <td>${escapeHtml(r.description)}</td>
+                    <td>${(parseFloat(r.baki)||0).toFixed(2)}</td>
+                    <td>${(parseFloat(r.jama)||0).toFixed(2)}</td>
+                    <td>${(parseFloat(r.total)||0).toFixed(2)}</td>
+                    <td>${running.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function closeWorkerDetails(){
+  document.getElementById('workerDetails').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+}
+
+/* -------------------------
+   Name suggestions (datalist)
+   ------------------------- */
+function updateNamesDatalist(){
+  const set = new Set();
+  records.forEach(r => { if(r.name) set.add(r.name.trim()); });
+  const datalist = document.getElementById('namesList');
+  datalist.innerHTML = '';
+  Array.from(set).sort((a,b)=> a.localeCompare(b,'bn')).forEach(n=>{
+    const opt = document.createElement('option'); opt.value = n; datalist.appendChild(opt);
+  });
+}
+
+/* -------------------------
+   CSV Export / Import
+   ------------------------- */
+function exportCSV(){
+  if(!records || records.length === 0){ alert('No records to export'); return; }
+  const headers = ['id','name','date','description','baki','jama','total','section'];
+  const rows = records.map(r => headers.map(h => JSON.stringify(r[h] != null ? r[h] : '')));
+  const csv = [headers.join(',')].concat(rows.map(r => r.join(','))).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'labor_data.csv'; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importCSV(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try {
+      const text = evt.target.result;
+      const parsed = parseCSV(text); // returns array of objects
+      // normalize to our schema
+      const newRecords = parsed.map((row, i) => {
+        return {
+          id: row.id || ('imp' + Date.now().toString(36) + i),
+          name: row.name || row.Name || '',
+          date: row.date || row.Date || '',
+          description: row.description || row.Description || row.details || '',
+          baki: parseFloat(row.baki || row.Baki || 0) || 0,
+          jama: parseFloat(row.jama || row.Joma || 0) || 0,
+          total: parseFloat(row.total || 0) || 0,
+          section: row.section || 'daily'
+        };
+      });
+      records = newRecords;
+      saveToStorage();
+      updateNamesDatalist();
       renderDailyTable();
       renderWorkerTable();
-      console.warn('No data loaded. Ensure your Apps Script supports GET or you provided CSV_URL.');
+      alert('Imported CSV successfully');
+      document.getElementById('csvFile').value = '';
+    } catch(err){
+      console.error(err);
+      alert('Failed to import CSV');
     }
+  };
+  reader.readAsText(file);
+}
 
-    function normalizeRecords(arr){
-      return arr.map((r, i) => {
-        if(typeof r === 'object' && !Array.isArray(r)){
-          return {
-            id: r.id || r.timestamp || String(i),
-            name: (r.name||'').toString(),
-            date: (r.date||'').toString(),
-            description: (r.description||r.details||'').toString(),
-            baki: parseFloat(r.baki||0) || 0,
-            joma: parseFloat(r.joma||r.joma||0) || 0,
-            total: parseFloat(r.total||0) || 0,
-            section: (r.section||'daily').toString(),
-            payment_status: (r.payment_status||'').toString()
-          };
-        } else if(Array.isArray(r)){
-          return {
-            id: r[0] || String(i),
-            name: r[1]||'',
-            date: r[2]||'',
-            description: r[3]||'',
-            baki: parseFloat(r[4]||0)||0,
-            joma: parseFloat(r[5]||0)||0,
-            total: parseFloat(r[6]||0)||0,
-            section: r[7]||'daily',
-            payment_status: r[8]||''
-          };
-        } else {
-          return { id:String(i), name:'', date:'', description:'', baki:0, joma:0, total:0, section:'daily', payment_status:'' };
-        }
-      });
-    }
+/* -------------------------
+   Utilities / helpers
+   ------------------------- */
+function parseCSV(text){
+  // handle quoted cells by simple regex replace; works for typical CSV exports
+  const rows = [];
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if(lines.length === 0) return [];
+  const headers = splitCSVLine(lines[0]);
+  for(let i=1;i<lines.length;i++){
+    const cols = splitCSVLine(lines[i]);
+    const obj = {};
+    headers.forEach((h,idx) => obj[h.trim()] = cols[idx] ? cols[idx].replace(/^"|"$/g,'') : '');
+    rows.push(obj);
+  }
+  return rows;
+}
 
-    async function addRecord(){
-      const name = document.getElementById('nameInput').value.trim();
-      const date = document.getElementById('dateInput').value;
-      const description = document.getElementById('detailsInput').value.trim();
-      const baki = document.getElementById('bakiInput').value || 0;
-      const joma = document.getElementById('jamaInput').value || 0;
-      const total = document.getElementById('totalInput').value || 0;
-      const section = document.getElementById('sectionInput').value || 'daily';
-      if(!name || !date){ alert('নাম এবং তারিখ প্রয়োজন'); return; }
+function splitCSVLine(line){
+  // split respecting quoted commas
+  const result = [];
+  let cur = '', inQuotes = false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch === '"' ) { inQuotes = !inQuotes; cur += ch; continue; }
+    if(ch === ',' && !inQuotes){ result.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
 
-      const fd = new FormData();
-      fd.append('name', name);
-      fd.append('date', date);
-      fd.append('description', description);
-      fd.append('baki', baki);
-      fd.append('joma', joma);
-      fd.append('total', total);
-      fd.append('section', section);
-      if(parseFloat(joma) > 0) fd.append('payment_status', 'Paid');
-      else fd.append('payment_status', '');
+function escapeHtml(s){ if(s===null || s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeJS(s){ if(s===null || s===undefined) return ''; return String(s).replace(/'/g,"\\'").replace(/"/g,'\\"'); }
 
-      try {
-        const resp = await fetch(SCRIPT_URL, { method: 'POST', body: fd });
-        if(resp.ok){
-          document.getElementById('nameInput').value = '';
-          document.getElementById('dateInput').value = '';
-          document.getElementById('detailsInput').value = '';
-          document.getElementById('bakiInput').value = '';
-          document.getElementById('jamaInput').value = '';
-          document.getElementById('totalInput').value = '';
-          await loadAll();
-          alert('Added successfully');
-        } else {
-          throw new Error('Post failed: ' + resp.status);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Network error while trying to save. Check SCRIPT_URL and Apps Script.');
-      }
-    }
-
-    async function editRecord(id){
-      const rec = records.find(r=>String(r.id) === String(id));
-      if(!rec) return alert('Record not found');
-      const name = prompt('নাম:', rec.name) || rec.name;
-      const date = prompt('তারিখ (YYYY-MM-DD):', rec.date) || rec.date;
-      const description = prompt('বিবরণ:', rec.description) || rec.description;
-      const baki = prompt('বাকী:', rec.baki) || rec.baki;
-      const joma = prompt('জমা:', rec.joma) || rec.joma;
-      const total = prompt('মোট:', rec.total) || rec.total;
-
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ action: 'updateRecord', id, record: { name, date, description, baki, joma, total } })
-        });
-        if(res.ok){
-          await loadAll();
-          alert('Update attempt done.');
-        } else throw new Error('Server ' + res.status);
-      } catch(err){
-        console.error(err);
-        alert('Update failed. Ensure your Apps Script supports updateRecord.');
-      }
-    }
-
-    async function deleteRecord(id){
-      if(!confirm('আপনি কি মুছে ফেলবেন?')) return;
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ action: 'deleteRecord', id })
-        });
-        if(res.ok){
-          await loadAll();
-          alert('Delete attempt done.');
-        } else throw new Error('Server ' + res.status);
-      } catch(err){
-        console.error(err);
-        alert('Delete failed. Ensure your Apps Script supports deleteRecord.');
-      }
-    }
-
-    function updateNamesList(){
-      const set = new Set();
-      records.forEach(r=>{ if(r.name) set.add(r.name.trim()); });
-      const datalist = document.getElementById('namesList');
-      datalist.innerHTML = '';
-      Array.from(set).sort((a,b)=> a.localeCompare(b,'bn')).forEach(n=>{
-        const opt = document.createElement('option');
-        opt.value = n;
-        datalist.appendChild(opt);
-      });
-    }
-
-    function renderDailyTable(){
-      const tbody = document.querySelector('#dailyTable tbody');
-      tbody.innerHTML = '';
-      const data = records.slice().filter(r=> r.section === 'daily' || !r.section).sort((a,b)=> new Date(a.date) - new Date(b.date));
-      data.forEach(r=>{
-        const tr = document.createElement('tr');
-        if((r.description||'').toLowerCase().includes('payment') || parseFloat(r.joma) > 0) tr.classList.add('red');
-        tr.innerHTML = `<td>${escapeHtml(r.name)}</td>
-                        <td>${escapeHtml(r.date)}</td>
-                        <td>${escapeHtml(r.description)}</td>
-                        <td>${(parseFloat(r.baki)||0).toFixed(2)}</td>
-                        <td>${(parseFloat(r.joma)||0).toFixed(2)}</td>
-                        <td>${(parseFloat(r.total)||0).toFixed(2)}</td>
-                        ${mode==='admin' ? `<td class="admin-only"><button onclick="editRecord('${escapeJS(r.id)}')">Edit</button> <button onclick="deleteRecord('${escapeJS(r.id)}')">Delete</button></td>` : ''}`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderWorkerTable(){
-      const tbody = document.querySelector('#workerTable tbody');
-      tbody.innerHTML = '';
-      const map = {};
-      records.forEach(r=>{
-        const name = r.name||'Unknown';
-        if(!map[name]) map[name] = { baki: 0, joma: 0, count: 0 };
-        map[name].baki += parseFloat(r.baki||0);
-        map[name].joma += parseFloat(r.joma||0);
-        map[name].count += 1;
-      });
-      Object.keys(map).sort((a,b)=> a.localeCompare(b,'bn')).forEach(name=>{
-        const item = map[name];
-        const balance = item.baki - item.joma;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td><a class="pointer" onclick="showWorkerDetails('${escapeJS(name)}')">${escapeHtml(name)}</a></td>
-                        <td>${item.baki.toFixed(2)}</td>
-                        <td>${item.joma.toFixed(2)}</td>
-                        <td>${balance.toFixed(2)}</td>
-                        <td>${item.count}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function showWorkerDetails(name){
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('workerDetails').classList.remove('hidden');
-      document.getElementById('workerTitle').innerText = name + ' - বিস্তারিত';
-      const data = records.filter(r=> (r.name||'') === name).slice().sort((a,b)=> new Date(a.date) - new Date(b.date));
-      const tbody = document.getElementById('workerDetailBody');
-      tbody.innerHTML = '';
-      let running = 0;
-      data.forEach(r=>{
-        running += (parseFloat(r.baki||0) - parseFloat(r.joma||0));
-        const tr = document.createElement('tr');
-        if((r.description||'').toLowerCase().includes('payment') || parseFloat(r.joma) > 0) tr.classList.add('red');
-        tr.innerHTML = `<td>${escapeHtml(r.date)}</td>
-                        <td>${escapeHtml(r.description)}</td>
-                        <td>${(parseFloat(r.baki)||0).toFixed(2)}</td>
-                        <td>${(parseFloat(r.joma)||0).toFixed(2)}</td>
-                        <td>${(parseFloat(r.total)||0).toFixed(2)}</td>
-                        <td>${running.toFixed(2)}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function closeWorkerDetails(){ document.getElementById('workerDetails').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden'); }
-
-    function parseCSV(text){
-      const lines = text.trim().split(/\r?\n/).map(l=>l.split(','));
-      if(lines.length < 1) return [];
-      const headers = lines[0].map(h=>h.trim());
-      const rows = lines.slice(1).map(r=>{
-        const obj = {};
-        headers.forEach((h,i)=> obj[h] = r[i] || '');
-        return obj;
-      });
-      return rows;
-    }
-
-    function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function escapeJS(s){ if(s==null) return ''; return String(s).replace(/'/g,"\\'").replace(/"/g,'\\"'); }
-  </script>
+/* -------------------------
+   Clear all data
+   ------------------------- */
+function clearAllConfirm(){
+  if(!confirm('Are you sure? This will erase all stored records locally.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  records = [];
+  updateNamesDatalist();
+  renderDailyTable();
+  renderWorkerTable();
+  alert('All local data cleared.');
+}
+</script>
 </body>
 </html>
