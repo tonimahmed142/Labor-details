@@ -356,13 +356,22 @@ function updateNamesDatalist(){
 
 /* CSV export/import */
 function exportCSV(){
-  if(!records || records.length === 0){ alert('No records to export'); return; }
+  loadFromStorage(); // ensure data is loaded first
+  if(!records || records.length === 0){
+    alert('No records to export');
+    return;
+  }
   const headers = ['id','name','date','description','baki','jama','total','section'];
   const rows = records.map(r => headers.map(h => `"${String(r[h] != null ? r[h] : '')}"`));
   const csv = [headers.join(',')].concat(rows.map(r => r.join(','))).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'labor_data.csv'; document.body.appendChild(a); a.click(); a.remove();
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'labor_data.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   URL.revokeObjectURL(url);
 }
 function importCSV(e){
