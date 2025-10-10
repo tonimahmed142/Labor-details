@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Labor Balance Chart</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <style>
+    body {
+      font-family: "Noto Sans Bengali", sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    #chartContainer {
+      max-width: 900px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 500px !important;
+    }
+
+    button {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h2>শ্রমিকদের মোট বাকী চার্ট</h2>
+
+  <div id="chartContainer">
+    <canvas id="bakiChart"></canvas>
+  </div>
+
+  <button onclick="window.location.href='index.html'">🔙 ফিরে যান</button>
+
+  <script>
+    // Load data
+    const records = JSON.parse(localStorage.getItem("laborData")) || [];
+
+    // Group and sum baki per worker
+    const bakiByName = {};
+    records.forEach(r => {
+      const name = r.name || "অজানা";
+      const baki = parseFloat(r.baki) || 0;
+      if (!bakiByName[name]) bakiByName[name] = 0;
+      bakiByName[name] += baki;
+    });
+
+    const names = Object.keys(bakiByName);
+    const bakis = Object.values(bakiByName);
+    const colors = bakis.map(v => v >= 0 ? "rgba(255,99,132,0.8)" : "rgba(75,192,75,0.8)");
+
+    const ctx = document.getElementById("bakiChart").getContext("2d");
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: names,
+        datasets: [{
+          label: "মোট বাকী (৳)",
+          data: bakis,
+          backgroundColor: colors,
+          borderColor: colors.map(c => c.replace("0.8", "1")),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.parsed.y} টাকা`
+            }
+          },
+          datalabels: {
+            color: "#111",
+            anchor: 'end',
+            align: ctx => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'start' : 'end',
+            formatter: v => v.toLocaleString() + '৳',
+            font: {
+              weight: 'bold',
+              size: 12
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "পরিমাণ (৳)" },
+            grid: { color: "#ddd" }
+          },
+          x: { grid: { display: false } }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  </script>
+</body>
+</html>
