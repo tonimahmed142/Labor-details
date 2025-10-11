@@ -80,7 +80,7 @@
 
   <script>
     function loadChart() {
-      const data = JSON.parse(localStorage.getItem("laborData")) || [];
+      const data = JSON.parse(localStorage.getItem("laborRecords_v1")) || [];
 
       if (data.length === 0) {
         document.getElementById("bakiChart").style.display = "none";
