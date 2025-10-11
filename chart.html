@@ -6,28 +6,33 @@
   <title>Labor Balance Chart</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #f8f9fa;
-      margin: 0;
       padding: 10px;
       text-align: center;
     }
 
     h2 {
-      margin-top: 10px;
-      font-size: 20px;
+      font-size: 18px;
       color: #333;
+      margin-bottom: 10px;
     }
 
     #chartContainer {
-      width: 95%;
-      max-width: 700px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
       background: #fff;
-      border-radius: 12px;
-      padding: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     canvas {
@@ -35,12 +40,18 @@
       height: auto !important;
     }
 
+    #noData {
+      font-size: 16px;
+      color: #666;
+      padding: 30px 0;
+    }
+
     button {
       margin-top: 15px;
       background-color: #007bff;
       color: white;
       border: none;
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
@@ -49,83 +60,86 @@
     button:hover {
       background-color: #0056b3;
     }
+
+    @media (max-width: 768px) {
+      h2 { font-size: 16px; }
+      button { font-size: 13px; padding: 7px 12px; }
+    }
   </style>
 </head>
 <body>
 
   <h2>শ্রমিকদের মোট বাকী চার্ট</h2>
+
   <div id="chartContainer">
     <canvas id="bakiChart"></canvas>
+    <div id="noData" style="display: none;">⚠️ কোনো তথ্য পাওয়া যায়নি</div>
   </div>
 
   <button onclick="window.location.href='index.html'">⬅ মূল পাতায় ফিরে যান</button>
 
   <script>
-    // Load data from localStorage
-    const data = JSON.parse(localStorage.getItem("laborData")) || [];
+    function loadChart() {
+      const data = JSON.parse(localStorage.getItem("laborData")) || [];
 
-    // Aggregate total baki per person
-    const totals = {};
-    data.forEach(row => {
-      const name = row.name || "অজানা";
-      const baki = parseFloat(row.baki || 0);
-      if (!totals[name]) totals[name] = 0;
-      totals[name] += baki;
-    });
+      if (data.length === 0) {
+        document.getElementById("bakiChart").style.display = "none";
+        document.getElementById("noData").style.display = "block";
+        return;
+      }
 
-    // Prepare data for chart
-    const names = Object.keys(totals);
-    const bakiValues = Object.values(totals);
+      const totals = {};
+      data.forEach(row => {
+        const name = row.name || "অজানা";
+        const baki = parseFloat(row.baki || 0);
+        if (!totals[name]) totals[name] = 0;
+        totals[name] += baki;
+      });
 
-    // Auto update check (if localStorage changes)
-    window.addEventListener("storage", () => location.reload());
+      const names = Object.keys(totals);
+      const bakiValues = Object.values(totals);
 
-    // Chart
-    const ctx = document.getElementById('bakiChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: names,
-        datasets: [{
-          label: 'মোট বাকী (৳)',
-          data: bakiValues,
-          backgroundColor: bakiValues.map(v => v < 0 ? 'rgba(255, 99, 132, 0.7)' : 'rgba(54, 162, 235, 0.7)'),
-          borderColor: bakiValues.map(v => v < 0 ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 1)'),
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'টাকার পরিমাণ (৳)'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'শ্রমিকের নাম'
-            }
-          }
+      const ctx = document.getElementById('bakiChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: names,
+          datasets: [{
+            label: 'মোট বাকী (৳)',
+            data: bakiValues,
+            backgroundColor: bakiValues.map(v => v < 0 ? 'rgba(255, 99, 132, 0.7)' : 'rgba(54, 162, 235, 0.7)'),
+            borderColor: bakiValues.map(v => v < 0 ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 1)'),
+            borderWidth: 1
+          }]
         },
-        plugins: {
-          legend: {
-            display: true,
-            labels: { font: { size: 13 } }
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'টাকার পরিমাণ (৳)' }
+            },
+            x: {
+              title: { display: true, text: 'শ্রমিকের নাম' }
+            }
           },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `${context.parsed.y} ৳`;
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.parsed.y} ৳`
               }
             }
           }
         }
-      }
-    });
+      });
+    }
+
+    // Reload chart if localStorage changes
+    window.addEventListener("storage", loadChart);
+
+    // Run on page load
+    loadChart();
   </script>
 
 </body>
