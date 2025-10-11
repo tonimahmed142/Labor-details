@@ -1,146 +1,102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="bn">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Labor Balance Chart</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f8f9fa;
-      padding: 10px;
-      text-align: center;
-    }
-
-    h2 {
-      font-size: 18px;
-      color: #333;
-      margin-bottom: 10px;
-    }
-
-    #chartContainer {
-      width: 100%;
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    canvas {
-      width: 100% !important;
-      height: auto !important;
-    }
-
-    #noData {
-      font-size: 16px;
-      color: #666;
-      padding: 30px 0;
-    }
-
-    button {
-      margin-top: 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    @media (max-width: 768px) {
-      h2 { font-size: 16px; }
-      button { font-size: 13px; padding: 7px 12px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>লেবার ব্যালান্স চার্ট</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { font-family: "Noto Sans Bengali", Arial, sans-serif; background:#fff; color:#222; padding:10px; }
+  header { text-align:center; font-weight:600; font-size:1.2rem; margin-bottom:10px; }
+  .chart-container { width:100%; overflow-x:auto; }
+  canvas { background:#fff; border:1px solid #ddd; border-radius:8px; padding:10px; }
+  @media(max-width:600px){ canvas { max-height:600px; } }
+</style>
 </head>
 <body>
+<header>লেবার মোট ব্যালান্স চার্ট</header>
+<div class="chart-container">
+  <canvas id="balanceChart"></canvas>
+</div>
 
-  <h2>শ্রমিকদের মোট বাকী চার্ট</h2>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function loadLaborData(){
+  try {
+    const raw = localStorage.getItem('laborRecords_v1');
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ console.error(e); return []; }
+}
 
-  <div id="chartContainer">
-    <canvas id="bakiChart"></canvas>
-    <div id="noData" style="display: none;">⚠️ কোনো তথ্য পাওয়া যায়নি</div>
-  </div>
+function buildChart(){
+  const records = loadLaborData();
+  if(!records || records.length === 0){ 
+    alert('কোনো ডাটা পাওয়া যায়নি'); 
+    return;
+  }
 
-  <button onclick="window.location.href='index.html'">⬅ মূল পাতায় ফিরে যান</button>
+  // Calculate total baki per worker
+  const map = {};
+  records.forEach(r=>{
+    const name = r.name || 'Unknown';
+    if(!map[name]) map[name] = 0;
+    map[name] += (parseFloat(r.baki || 0) - parseFloat(r.jama || 0));
+  });
 
-  <script>
-    function loadChart() {
-      const data = JSON.parse(localStorage.getItem("laborRecords_v1")) || [];
+  const labels = Object.keys(map).sort((a,b)=> a.localeCompare(b,'bn'));
+  const data = labels.map(l => map[l]);
 
-      if (data.length === 0) {
-        document.getElementById("bakiChart").style.display = "none";
-        document.getElementById("noData").style.display = "block";
-        return;
-      }
+  const ctx = document.getElementById('balanceChart').getContext('2d');
+  const chartHeight = Math.max(400, labels.length * 40); // grows with number of labors
+  document.getElementById('balanceChart').height = chartHeight;
 
-      const totals = {};
-      data.forEach(row => {
-        const name = row.name || "অজানা";
-        const baki = parseFloat(row.baki || 0);
-        if (!totals[name]) totals[name] = 0;
-        totals[name] += baki;
-      });
-
-      const names = Object.keys(totals);
-      const bakiValues = Object.values(totals);
-
-      const ctx = document.getElementById('bakiChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: names,
-          datasets: [{
-            label: 'মোট বাকী (৳)',
-            data: bakiValues,
-            backgroundColor: bakiValues.map(v => v < 0 ? 'rgba(255, 99, 132, 0.7)' : 'rgba(54, 162, 235, 0.7)'),
-            borderColor: bakiValues.map(v => v < 0 ? 'rgba(255, 99, 132, 1)' : 'rgba(54, 162, 235, 1)'),
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: 'টাকার পরিমাণ (৳)' }
-            },
-            x: {
-              title: { display: true, text: 'শ্রমিকের নাম' }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (context) => `${context.parsed.y} ৳`
-              }
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'মোট ব্যালান্স',
+        data: data,
+        backgroundColor: data.map(v => v < 0 ? 'rgba(255,99,132,0.6)' : 'rgba(54,162,235,0.6)'),
+        borderColor: data.map(v => v < 0 ? 'rgba(255,99,132,1)' : 'rgba(54,162,235,1)'),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: 'y', // vertical bars
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { beginAtZero:true, title:{display:true,text:'ব্যালান্স'} },
+        y: { title:{display:true,text:'নাম'} }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          callbacks: {
+            label: function(context){
+              return 'ব্যালান্স: ' + context.raw.toFixed(2);
             }
           }
+        },
+        datalabels: {
+          anchor: 'end',
+          align: 'right',
+          color: '#000',
+          font: { weight:'bold' },
+          formatter: function(value){ return value.toFixed(2); }
         }
-      });
-    }
+      }
+    },
+    plugins: [ChartDataLabels] // display value above bar
+  });
+}
 
-    // Reload chart if localStorage changes
-    window.addEventListener("storage", loadChart);
-
-    // Run on page load
-    loadChart();
-  </script>
-
+// Load Chart.js datalabels plugin dynamically
+const script = document.createElement('script');
+script.src = "https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2";
+script.onload = buildChart;
+document.head.appendChild(script);
+</script>
 </body>
 </html>
