@@ -194,9 +194,10 @@ document.querySelectorAll("tr").forEach(row => {
   
 /* Offline app using localStorage with search and edit modal */
 const STORAGE_KEY = 'laborRecords_v1';
+const FINISHED_KEY = 'finishedStatus_v1';
 let mode = ''; // 'admin' or 'viewer'
 let records = [];
-
+let finishedStatus = {};
 document.addEventListener('DOMContentLoaded', ()=>{ /* nothing until login */ });
 
 /* Auth / Navigation */
