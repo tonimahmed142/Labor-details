@@ -343,7 +343,7 @@ function renderDailyTable(){
   });
 }
 
-function renderWorkerTable(){
+function renderWorkerTable() {
   const tbody = document.querySelector('#workerTable tbody');
   tbody.innerHTML = '';
   const map = {};
@@ -354,15 +354,19 @@ function renderWorkerTable(){
     map[n].jama += parseFloat(r.jama || 0);
     map[n].count += 1;
   });
-  Object.keys(map).sort((a,b)=> a.localeCompare(b,'bn')).forEach(name=>{
+  Object.keys(map).forEach(name=>{
     const it = map[name];
     const balance = it.baki - it.jama;
+    const isFinished = finishedStatus[name] || false;
+    const redDot = isFinished ? '' : '<span class="red-dot"></span>';
+    const checkbox = `<input type="checkbox" ${isFinished ? 'checked' : ''} onchange="toggleFinished('${escapeJS(name)}', this.checked)">`;
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><a class="pointer" onclick="showWorkerDetails('${escapeJS(name)}')">${escapeHtml(name)}</a></td>
+    tr.innerHTML = `<td><a class="pointer" onclick="showWorkerDetails('${escapeJS(name)}')">${redDot}${escapeHtml(name)}</a></td>
                     <td>${it.baki.toFixed(2)}</td>
                     <td>${it.jama.toFixed(2)}</td>
                     <td>${balance.toFixed(2)}</td>
-                    <td>${it.count}</td>`;
+                    <td>${it.count}</td>
+                    <td>${checkbox}</td>`;
     tbody.appendChild(tr);
   });
 }
