@@ -371,6 +371,12 @@ function renderWorkerTable() {
   });
 }
 
+function toggleFinished(name, checked) {
+  finishedStatus[name] = checked;
+  saveFinishedStatus();
+  renderWorkerTable();
+}  
+
 /* Worker details with running total */
 function showWorkerDetails(name){
   document.getElementById('dashboard').classList.add('hidden');
