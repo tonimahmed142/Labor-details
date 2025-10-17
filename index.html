@@ -267,6 +267,11 @@ function addRecord(){
   saveToStorage(); clearAddInputs(); updateNamesDatalist(); renderDailyTable(); renderWorkerTable();
 }
 
+function saveFinishedStatus() {
+  try { localStorage.setItem(FINISHED_KEY, JSON.stringify(finishedStatus)); }
+  catch(e) { console.error(e); }
+}
+  
 function clearAddInputs(){
   document.getElementById('nameInput').value=''; document.getElementById('dateInput').value=''; document.getElementById('detailsInput').value='';
   document.getElementById('bakiInput').value=''; document.getElementById('jamaInput').value=''; document.getElementById('totalInput').value=''; document.getElementById('sectionInput').value='daily';
