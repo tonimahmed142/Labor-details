@@ -233,6 +233,8 @@ function showTab(tab){
 function loadFromStorage(){
   try { const raw = localStorage.getItem(STORAGE_KEY); records = raw ? JSON.parse(raw) : []; }
   catch(e){ console.error(e); records = []; }
+  try { finishedStatus = JSON.parse(localStorage.getItem(FINISHED_KEY)) || {}; }
+  catch(e) { finishedStatus = {}; }
   updateNamesDatalist(); renderDailyTable(); renderWorkerTable();
 }
 function saveToStorage(){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch(e){ console.error(e); } }
