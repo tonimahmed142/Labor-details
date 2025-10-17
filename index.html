@@ -262,6 +262,8 @@ function addRecord(){
   if(!name || !date){ alert('নাম এবং তারিখ দিন'); return; }
   const id = Date.now().toString(36) + Math.floor(Math.random()*1000);
   records.push({ id, name, date, description, baki, jama, total, section });
+  finishedStatus[name] = false;
+  saveFinishedStatus();
   saveToStorage(); clearAddInputs(); updateNamesDatalist(); renderDailyTable(); renderWorkerTable();
 }
 
