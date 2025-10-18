@@ -323,15 +323,24 @@ function matchesSearch(rec){
 function renderDailyTable(){
   const tbody = document.querySelector('#dailyTable tbody');
   tbody.innerHTML = '';
-  const data = records.slice().filter(r => r.section === 'daily' || !r.section).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  // 🔄 Sort from newest → oldest instead of oldest → newest
+  const data = records
+    .slice()
+    .filter(r => r.section === 'daily' || !r.section)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));  // 👈 just reversed this line
+
   const filtered = data.filter(matchesSearch);
   filtered.forEach(r=>{
     const tr = document.createElement('tr');
-    if((r.description||'').toLowerCase().includes('payment') || (parseFloat(r.jama)||0) > 0) tr.classList.add('red');
+    if((r.description||'').toLowerCase().includes('payment') || (parseFloat(r.jama)||0) > 0)
+      tr.classList.add('red');
+
     const actions = `<td>
       <button class="btn btn-sm btn-outline-primary btn-small mr-1" onclick="openEditModal('${r.id}')">Edit</button>
       <button class="btn btn-sm btn-outline-danger btn-small" onclick="deleteRecord('${r.id}')">Delete</button>
     </td>`;
+
     tr.innerHTML = `<td>${escapeHtml(r.name)}</td>
                     <td>${escapeHtml(r.date)}</td>
                     <td>${escapeHtml(r.description)}</td>
